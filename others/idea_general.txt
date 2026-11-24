@@ -1,0 +1,77 @@
+00 Idea principal
+
+Quiero pensar en este proytecto como si fuera una pila de platos.
+
+Bien, segun esa idea puedo mirar la cima, quitar el primero y colocara uno encima.
+Ene ste proyecto pasaria igual, puedo intercambiar dos elementos superiores y rotar la pila, sin embargo, no exite una logica donde peuda mover
+el plato 3 hacia el 17.
+
+
+01 Listas enlazadas:
+Volviendo a la anoliga de los platos, nostros tenemos un plato (nodo) que estara apilado con otros nodos, cada plato tendra un plato al que apuntara
+hacia arriba, y si lo vemos en conjunto, debajo de este mismo plato tendremos otro que apuntara a este.
+
+Es decir, tendremos en la pila A un conjunto de nodos (lista enlazada) que se apuntaran consecutivamente.
+
+- Que guarada cada nodo?
+
+* Valor original:   El entero tal y como llego
+* next:             El puntero al siguiente nodo
+* rango/indice:     Posicion del valor den el orden total (se usaea en Radix y chunks)
+
+Quiero dejar claro como funcionara el tercer punto, si nostros recibimos una lista de numeros [40 -9 7 22], nostros asignamos su rango/index
+[3 0 1 2] (donde el 0 es el indice donde esta el numero mas pequeno del conjunto y 3 seria el mayor del cunjunto). Pero pq hacer esto?
+
+Esto no salva del apurod e tener que hacer la conversion de un numero a un binariop (para el Radix ni tratar un numero especialmente grande).
+
+
+01.1 Invariantes: Cuatro verdades que deben cumplirse y que seran la base del proyecto
+
+01. Si el tamaño es 0, la cabeza es NULL. Si hay nodos, la cabeza apunta a un nodo real.
+02. El último nodo enlazado tiene su siguiente en NULL; no hay ciclos involuntarios.
+03. Un mismo nodo pertenece exactamente a una pila en cada momento. Nunca a las dos a la vez.
+04. Cada operación conserva el número total de nodos: tamaño(A) + tamaño(B) = cantidad inicial.
+
+
+02 Las once operaciones:
+
+Realmente podemos hacer un conjunto practico de todos los movimientos subdividiendolas en cuatro categorias:
+
+Swap:           sa, sb, ss      Intercambia los dos primeros de una o ambas pilas
+Push:           pa, pb          Sacar la cabeza de una pila y colocarla como cabeza de otra
+Rotate:         ra, rb, rr      La cabeza pasa a ser la cola
+Reverse rotate: rra, rrb, rrr   La cola pasa a ser la cabeza
+
+
+03 Diseno de la estructura del proyecto
+TODO
+
+
+04 Construir la estructura de la lista:
+
+04.1 Deberia crear una structura que representara un nodo (push_swap.c -> s_node), este contendra: rank, el numero y next.
+
+04.2 Ahora hay que empezar a contruir las dos pilas (A y B respectivamente). Por eso necesitare una estructura que nos permita controlar cada pila
+(push_swap.h -> s_stack), esta estructura contedra head que sera el primer nodo y luego size que sera el numero de nodos que copntiene el stack.
+
+04.3 Diseno de ciclo de vida del nodo:
+
+	04.3.0 Nodo nuevo: En new_node.c genero una funcion que cuenado sea llamda devolvera el nuevo nodo generado, este se hace mediante malloc, lo protegemos e
+	inicializamos cada atributo del struct (lo mas llamativo de esta parte es que como argumento de la funcion le pasamos value (el numero) y se lo metemos
+	al atributo value de este nodo para que asi contenga el numero que se le corresponde; ademas, en rank, un el numero 0 iria asociado al numero mas pequeno
+	(recordemos que rank es como el indice de normalizacion que teien cada nodo), por ende lo inicializo a -1 para marcar que no esta en ningun rank).
+	
+	04.3.1 Insertar ese nodo al final de la pila: Con esta funcion (append_node) loq ue hacemos es poner este nuevo nodo en la cola, es decir, si es un nuevo
+	nodo debe ir intuitivamente al final del stack (de este modo conservo el orden de posicion de cada numero que se nos da al principio). Debemos contemplar
+	dos situaciones:
+
+		- Lista vacia:          El nuevo nodo apsara a ser el head de la lista (resolvemos lo delm next en este caso pq se inicializa en 04.3.0 poniendo su next en NULL).
+		- Lista con elementos:  Recorres la lista hasta encontrar el ultimo nodo y conectas su next al nuevo.
+	04.3.2 Liberar todos los nodos del stack
+
+04.4 Crear una funcion que revise si ya estan ordenados los numeros que nos dan al principio (esto podemos unirlo con el comprobador de desorden), si solo hay un
+numero desordenado devolvemos inmediatamete 0 pero si se termina la iteracion con todos los numeros ordenados devolvemos un 1 y de este modo decimos: TODO ORDENADO
+
+	
+	
+
