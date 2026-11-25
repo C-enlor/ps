@@ -16,4 +16,4 @@ int	is_sorted(t_stack *stack)
 		aux = aux->next;
 	}
 	return (1);
-}
+}

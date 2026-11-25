@@ -19,4 +19,4 @@ void append_node(t_stack *stack, t_node *new_node)
     else
         node_w_content(stack, new_node);
     stack->size++;
-}
+}

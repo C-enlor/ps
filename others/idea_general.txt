@@ -1,77 +1,209 @@
-00 Idea principal
+==============================================================
+ PARTE A - LA IDEA (antes de las etapas)
+==============================================================
 
-Quiero pensar en este proytecto como si fuera una pila de platos.
+LA PILA DE PLATOS
+Quiero pensar en este proyecto como una pila de platos. Puedo mirar la cima, quitar el primero y colocar uno encima. Aqui tambien puedo intercambiar los dos de arriba y rotar la pila, pero no existe ningun movimiento para llevar el plato 3 al 17.
 
-Bien, segun esa idea puedo mirar la cima, quitar el primero y colocara uno encima.
-Ene ste proyecto pasaria igual, puedo intercambiar dos elementos superiores y rotar la pila, sin embargo, no exite una logica donde peuda mover
-el plato 3 hacia el 17.
+LA LISTA ENLAZADA
+Cada plato es un nodo que apunta al siguiente. La pila A es un conjunto de nodos enlazados; la pila B empieza vacia. La cabeza de la lista es la cima de la pila.
+
+   A:  head --> [4 | next] --> [1 | next] --> [3 | NULL]
+   B:  head --> NULL
+
+QUE GUARDA CADA NODO
+- value:  el entero tal y como llego.
+- rank:   su posicion en el orden total (0 = el menor, n-1 = el mayor). Lo usaran radix y chunks. Ejemplo: [40 -9 7 22] -> rangos [3 0 1 2]. Asi no tengo que pasar a binario un numero negativo ni tratar un entero enorme.
+- next:   puntero al siguiente nodo.
+
+QUE GUARDA CADA PILA
+- head:   primer nodo (la cima).
+- size:   cuantos nodos tiene.
+
+LOS CINCO INVARIANTES (siempre ciertos)
+- Si size es 0, head es NULL. Si hay nodos, head apunta a uno real.
+- El ultimo nodo tiene next = NULL. No hay ciclos.
+- Un nodo esta en UNA sola pila a la vez.
+- Cada operacion conserva el total: size(A) + size(B) = cantidad inicial.
+- Tras una operacion, el recorrido de la lista coincide con lo que razono en papel.
+
+LAS ONCE OPERACIONES
+  Swap            sa, sb, ss        Intercambia los dos primeros.
+  Push            pa, pb            Saca la cabeza de una pila y la pone como cabeza de la otra.
+  Rotate          ra, rb, rr        La cabeza pasa a ser la cola.
+  Reverse rotate  rra, rrb, rrr     La cola pasa a ser la cabeza.
+
+DOS COSTES DISTINTOS (para no liarme en el README)
+- Operaciones impresas: las lineas que salen por stdout. Es lo que mide el subject.
+- Coste de CPU: comparaciones y recorridos internos en C. Los rangos y el desorden son O(n2) de CPU, pero no imprimen nada. Radix imprime O(n log n) operaciones.
+
+FLUJO DEL PROGRAMA
+  argumentos -> validar -> crear A -> asignar rangos -> (medir desorden) -> elegir estrategia -> operaciones -> liberar
+
+MAPA DE ARCHIVOS (carpeta push_swap/)
+  push_swap.h           structs, enum de modo y prototipos
+  push_swap.c           main: configurar, parsear, limpiar
+  init_stacks.c         deja A y B vacias
+  new_node.c            crea un nodo
+  append_node.c         mete un nodo al final
+  free_stack.c          libera todos los nodos
+  is_sorten.c           comprueba si ya esta ordenada
+  stack_queries.c       is_empty, count_nodes, find_min, find_max, get_position
+  utils.c               ft_strcmp, is_digit, is_sep (no hay libft)
+  parse_flags.c         reconoce las flags
+  parse_number.c        forma del numero y conversion segura
+  parse_duplicates.c    busca repetidos
+  parse_args.c          recorre argv y construye A
+  swap.c push.c rotate.c reverse_rotate.c     las operaciones (sin programar)
+  disorder.c            indice de desorden
+  rank.c                asignar y comprobar rangos
+  tests/test_stages.c   SOLO pruebas (make test). Borrar antes de entregar.
 
 
-01 Listas enlazadas:
-Volviendo a la anoliga de los platos, nostros tenemos un plato (nodo) que estara apilado con otros nodos, cada plato tendra un plato al que apuntara
-hacia arriba, y si lo vemos en conjunto, debajo de este mismo plato tendremos otro que apuntara a este.
+==============================================================
+ PARTE B - LAS ETAPAS
+==============================================================
 
-Es decir, tendremos en la pila A un conjunto de nodos (lista enlazada) que se apuntaran consecutivamente.
+--------------------------------------------------------------
+ ETAPA 00 - Pruebas y acuerdos                           [X]
+--------------------------------------------------------------
+Meta: saber como comprobar cada avance.
 
-- Que guarada cada nodo?
+Hecho:
+- Makefile con NAME, all, clean, fclean, re y -Wall -Wextra -Werror. No hace relink.
+- Acuerdo: el primer argumento es la cabeza (la cima) de A.
+- Herramienta de depuracion: print_stack (en tests/test_stages.c) muestra A o B por stderr, asi stdout nunca se mezcla con las operaciones.
+- make test compila las pruebas con AddressSanitizer.
 
-* Valor original:   El entero tal y como llego
-* next:             El puntero al siguiente nodo
-* rango/indice:     Posicion del valor den el orden total (se usaea en Radix y chunks)
-
-Quiero dejar claro como funcionara el tercer punto, si nostros recibimos una lista de numeros [40 -9 7 22], nostros asignamos su rango/index
-[3 0 1 2] (donde el 0 es el indice donde esta el numero mas pequeno del conjunto y 3 seria el mayor del cunjunto). Pero pq hacer esto?
-
-Esto no salva del apurod e tener que hacer la conversion de un numero a un binariop (para el Radix ni tratar un numero especialmente grande).
-
-
-01.1 Invariantes: Cuatro verdades que deben cumplirse y que seran la base del proyecto
-
-01. Si el tamaño es 0, la cabeza es NULL. Si hay nodos, la cabeza apunta a un nodo real.
-02. El último nodo enlazado tiene su siguiente en NULL; no hay ciclos involuntarios.
-03. Un mismo nodo pertenece exactamente a una pila en cada momento. Nunca a las dos a la vez.
-04. Cada operación conserva el número total de nodos: tamaño(A) + tamaño(B) = cantidad inicial.
+Mis tres listas de ejemplo para probar siempre:
+- Vacia:          head = NULL, size = 0
+- Un nodo:        7
+- Cuatro nodos:   3 1 2 4
 
 
-02 Las once operaciones:
+--------------------------------------------------------------
+ ETAPA 01 - Estructura de listas                         [X]
+--------------------------------------------------------------
+Meta: crear, enlazar, recorrer y liberar nodos, sin operaciones todavia.
 
-Realmente podemos hacer un conjunto practico de todos los movimientos subdividiendolas en cuatro categorias:
+Ciclo de vida del nodo:
+- new_node(value):     malloc protegido. Guarda value, pone rank = -1 (todavia sin rango) y next = NULL.
+- append_node(s, n):   mete el nodo AL FINAL (asi conservo el orden de argv). Si la lista esta vacia, el nodo pasa a ser head. Si no, recorro con un aux hasta el ultimo y enlazo. Siempre size++.
+- free_stack(s):       guarda next en un aux ANTES de liberar el nodo. Deja head = NULL y size = 0. Es seguro llamarla con una pila vacia.
+- init_stacks(a, b):   head = NULL y size = 0 en las dos.
 
-Swap:           sa, sb, ss      Intercambia los dos primeros de una o ambas pilas
-Push:           pa, pb          Sacar la cabeza de una pila y colocarla como cabeza de otra
-Rotate:         ra, rb, rr      La cabeza pasa a ser la cola
-Reverse rotate: rra, rrb, rrr   La cola pasa a ser la cabeza
+Consultas (stack_queries.c, ninguna modifica nada):
+- is_empty(s):             1 si head es NULL.
+- count_nodes(s):          cuenta recorriendo de verdad (no usa size, asi puedo comprobar que size es correcto).
+- find_min / find_max:     devuelven el NODO menor / mayor (NULL si esta vacia).
+- get_position(s, rank):   posicion del nodo con ese rango (0 = cima), o -1.
+
+Pruebas: 4 8 2 se recorre como 4 -> 8 -> 2; size coincide con los nodos; liberar vacia o con un nodo no falla.
 
 
-03 Diseno de la estructura del proyecto
-TODO
+--------------------------------------------------------------
+ ETAPA 02 - Las once operaciones                         [~]
+--------------------------------------------------------------
+Meta: que las once instrucciones funcionen sobre las listas. AHORA SOLO EXISTEN, SIN PROGRAMAR.
+
+Las funciones estan creadas con el cuerpo vacio (solo (void)variable; para compilar con -Werror). Dos capas:
+- Interna (modifica la lista, NO imprime):       swap_nodes, push_node, rotate_stack, reverse_rotate_stack
+- Publica (llama a la interna e imprime UNA vez): sa, sb, ss, pa, pb, ra, rb, rr, rra, rrb, rrr
+
+Por que dos capas: si rr llamara a ra y a rb y las dos imprimieran, saldrian dos lineas. Con la capa interna, rr rota A, rota B y escribe "rr" una sola vez. Igual con ss y rrr.
+
+Plan de cada una (todavia sin escribir):
+- swap_nodes:            con menos de 2 nodos no hace nada. Cambia ENLACES de los dos primeros y actualiza head (no cambia los values).
+- push_node(from, to):   si from esta vacia no hace nada. Si no, saca la cabeza de from y la pone delante de to; size-- en from, size++ en to. Sin malloc ni free: el nodo es el mismo.
+- rotate_stack:          con menos de 2 nodos no hace nada. La cabeza pasa al final.
+- reverse_rotate_stack:  con menos de 2 nodos no hace nada. Busca el penultimo, corta, y el ultimo pasa a ser head.
+
+Orden en que las hare: swap, push (pb y pa), rotaciones, rotaciones inversas, y al final ss, rr, rrr.
+
+Pruebas que tendran que pasar:
+- swap con 0 y 1 nodo no toca ningun next inexistente.
+- push con el origen vacio no cambia el destino.
+- pb + pa devuelve el mismo estado; igual ra + rra y rb + rrb.
+- rotate con 2 nodos equivale a swap.
+- rr y rrr mueven las dos pilas pero escriben una sola linea.
+- size(A) + size(B) igual antes y despues de cada operacion (tambien tras 100 movimientos variados).
 
 
-04 Construir la estructura de la lista:
+--------------------------------------------------------------
+ ETAPA 03 - Parsear y validar argumentos                 [X]
+--------------------------------------------------------------
+Meta: que ninguna entrada incorrecta cree un estado a medias.
 
-04.1 Deberia crear una structura que representara un nodo (push_swap.c -> s_node), este contendra: rank, el numero y next.
+Regla de oro: un texto NUNCA entra en value solo porque "parece un numero". Entra cuando ha pasado todas las comprobaciones. No uso atoi.
 
-04.2 Ahora hay que empezar a contruir las dos pilas (A y B respectivamente). Por eso necesitare una estructura que nos permita controlar cada pila
-(push_swap.h -> s_stack), esta estructura contedra head que sera el primer nodo y luego size que sera el numero de nodos que copntiene el stack.
+Camino de cada argumento:
+  argv[i] -> flag? -> forma valida? -> cabe en int? -> repetido? -> new_node -> append_node
 
-04.3 Diseno de ciclo de vida del nodo:
+Funciones:
+- parse_mode (parse_flags.c):       si el texto es exactamente una flag guarda el modo y devuelve 1; si no, devuelve 0.
+- is_valid_number (parse_number.c): signo opcional + al menos un digito + solo digitos. Solo mira la FORMA, no el rango.
+- parse_int_checked:                convierte acumulando en un long y para en cuanto se pasa de INT_MAX + 1 (asi mil nueves no desbordan). Aplica el signo y comprueba INT_MIN / INT_MAX. Devuelve 1/0 y deja el numero en un puntero de salida (el 0 es un valor valido, no puede ser el "fallo").
+- has_duplicate:                    recorre A con aux y compara VALORES, no textos (42, +42 y 0042 son el mismo).
+- parse_args (parse_args.c), con dos ayudantes:
+    add_token:     valida, convierte, mira duplicados, crea el nodo y lo anade (un numero).
+    add_argument:  recorre un argv con un indice, saltando espacios; permite "3 1 2" sin split ni memoria temporal.
+    parse_args:    modo ADAPTIVE por defecto, mira si argv[1] es flag y lee el resto.
+- main: sin argumentos sale callado; si parse_args falla escribe "Error\n" UNA vez por stderr (write fd 2) y devuelve 1; siempre libera A y B. Las funciones del parser nunca imprimen ni hacen exit: devuelven 0/1 y main decide.
 
-	04.3.0 Nodo nuevo: En new_node.c genero una funcion que cuenado sea llamda devolvera el nuevo nodo generado, este se hace mediante malloc, lo protegemos e
-	inicializamos cada atributo del struct (lo mas llamativo de esta parte es que como argumento de la funcion le pasamos value (el numero) y se lo metemos
-	al atributo value de este nodo para que asi contenga el numero que se le corresponde; ademas, en rank, un el numero 0 iria asociado al numero mas pequeno
-	(recordemos que rank es como el indice de normalizacion que teien cada nodo), por ende lo inicializo a -1 para marcar que no esta en ningun rank).
-	
-	04.3.1 Insertar ese nodo al final de la pila: Con esta funcion (append_node) loq ue hacemos es poner este nuevo nodo en la cola, es decir, si es un nuevo
-	nodo debe ir intuitivamente al final del stack (de este modo conservo el orden de posicion de cada numero que se nos da al principio). Debemos contemplar
-	dos situaciones:
+Decisiones mias (para el README):
+- La flag solo vale como PRIMER argumento. Una segunda se trata como numero y da Error.
+- "--simpl" o "--SIMPLE" no son flags: Error.
+- Una flag sin numeros: salgo sin imprimir nada.
+- "" o "   " como argumento: Error.
+- argc - 1 NO es el size: con flags o con "3 1 2" no coincide. El size lo cambia solo append_node.
 
-		- Lista vacia:          El nuevo nodo apsara a ser el head de la lista (resolvemos lo delm next en este caso pq se inicializa en 04.3.0 poniendo su next en NULL).
-		- Lista con elementos:  Recorres la lista hasta encontrar el ultimo nodo y conectas su next al nuevo.
-	04.3.2 Liberar todos los nodos del stack
+Casos probados (stdout siempre vacio):
+  ./push_swap                        sale callado
+  ./push_swap 3 1 2                  valido
+  ./push_swap -4 0 8                 valido
+  ./push_swap --medium 4 1 "3 2"     valido, A = 4 1 3 2, size 4
+  ./push_swap 1 2 3                  valido, ya ordenado
+  ./push_swap 3 1 3                  Error (duplicado)
+  ./push_swap 3 +3                   Error (duplicado)
+  ./push_swap 7 9z 1                 Error
+  ./push_swap + 4                    Error (solo signo)
+  ./push_swap 2147483648             Error (fuera de int)
+  ./push_swap ""                     Error
+  ./push_swap --fast 1 2             Error (flag desconocida)
+  ./push_swap 1 2 "3 x"              Error y sin leaks
 
-04.4 Crear una funcion que revise si ya estan ordenados los numeros que nos dan al principio (esto podemos unirlo con el comprobador de desorden), si solo hay un
-numero desordenado devolvemos inmediatamete 0 pero si se termina la iteracion con todos los numeros ordenados devolvemos un 1 y de este modo decimos: TODO ORDENADO
 
-	
-	
+--------------------------------------------------------------
+ ETAPA 04 - Orden y desorden                             [X]
+--------------------------------------------------------------
+Meta: calcular el indice de desorden ANTES de mover nada.
 
+Una inversion es una pareja donde el que va antes es MAYOR que el que va despues.
+  desorden = inversiones / pares_totales      con pares_totales = n(n-1)/2
+Va de 0 (ordenado) a 1 (al reves). Ejemplo [3 1 2]: 2 inversiones de 3 pares = 0,6667.
+
+Funciones:
+- is_sorted (is_sorten.c):   devuelve 1 si esta ordenada. Con 0 o 1 nodos devuelve 1.
+- count_inversions:          dos punteros, left y right (right recorre todo lo que viene despues de left). Devuelve long.
+- compute_disorder:          con menos de 2 nodos devuelve 0.0 (no divido entre cero). Divido en double.
+
+Pruebas: [1 2 3 4] = 0 / [3 1 2] = 0,6667 / [4 3 2 1] = 1 / [2 1 3 4] = 0,1667 / vacia = 0 / un nodo = 0.
+
+Regimenes del modo adaptativo (se usaran en la etapa 09):
+  D < 0,2            bajo     O(n)
+  0,2 <= D < 0,5     medio    O(n raiz n)
+  D >= 0,5           alto     O(n log n)
+
+Todavia no llamo a compute_disorder desde main: el desorden se calcula UNA vez antes de la primera operacion, y ahora mismo no hay donde guardarlo. Lo conectare con el selector.
+
+
+--------------------------------------------------------------
+ ETAPA 05 - Rangos                                       [X]
+--------------------------------------------------------------
+Meta: pasar valores arbitrarios a indices 0..n-1 sin perder los valores.
+
+- assign_ranks (rank.c):  para cada nodo x recorro todos los nodos y cuento cuantos tienen value MENOR. Ese contador es su rango. Como no hay duplicados, no hay dos rangos iguales.
+- check_ranks:            comprueba que los rangos son exactamente 0..n-1: para cada r cuento (count_rank) cuantos nodos lo tienen y tiene que ser 1.
+- main llama a assign_ranks justo despues de parsear con exito.
+
+Pruebas: [50 10 30] -> [2 0 1] / [40 -9 7 22] -> [3 0 1 2] / con INT_MAX, 0, INT_MIN, -1 -> [3 2 0 1] / ya ordenada -> ascendentes / los values no cambian / check_ranks detecta un rango repetido.

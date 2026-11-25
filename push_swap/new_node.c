@@ -11,4 +11,4 @@ t_node  *new_node(int value)
 	node->rank =  -1;
 	node->next = NULL;
 	return(node);
-}
+}
