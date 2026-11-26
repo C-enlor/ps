@@ -77,4 +77,14 @@ int		ft_strcmp(const char *s1, const char *s2);
 int		is_digit(char c);
 int		is_sep(char c);
 
+/* movements*/
+void	pa(t_stack *a, t_stack *b);
+void	pb(t_stack *a, t_stack *b);
+void	sa(t_stack *a);
+void	sb(t_stack *b);
+void	ss(t_stack *a, t_stack *b);
+void	ra(t_stack *a);
+void	rb(t_stack *b);
+void	rr(t_stack *a, t_stack *b);
+
 #endif
